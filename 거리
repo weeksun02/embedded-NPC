@@ -1,0 +1,163 @@
+#include <Servo.h>
+
+// --- 서보 ---
+Servo myservo;
+
+// --- 모터 핀 ---
+#define ENA_PIN 5
+#define ENB_PIN 6
+#define MOTOR_L_1 8
+#define MOTOR_L_2 9
+#define MOTOR_R_1 10
+#define MOTOR_R_2 11
+
+// --- 센서 핀 ---
+#define LIGHT_LEFT_PIN A0
+#define LIGHT_CENTER_PIN A3
+#define LIGHT_RIGHT_PIN A5
+#define SERVO_PIN 2
+
+// --- 초음파 핀 ---
+#define TRIG_PIN 12
+#define ECHO_PIN 13
+
+// --- 설정 값 ---
+#define THRESHOLD 300
+#define FORWARD 0
+#define BACK 1
+
+// --- 서보 각도 ---
+#define ANGLE_MIDDLE 40
+#define ANGLE_RIGHT_HALF 60
+#define ANGLE_LEFT_HALF 20
+#define ANGLE_RIGHT_MAX 70
+#define ANGLE_LEFT_MAX 10
+
+// --- 속도 ---
+#define SPEED_FAST 120
+#define SPEED_SLOW 100
+#define SPEED_STOP 0
+
+// --- 거리 기준 ---
+#define SAFE_DISTANCE 15   // cm (이 거리보다 가까우면 감속/정지)
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(ENA_PIN, OUTPUT);
+  pinMode(ENB_PIN, OUTPUT);
+  pinMode(MOTOR_L_1, OUTPUT);
+  pinMode(MOTOR_L_2, OUTPUT);
+  pinMode(MOTOR_R_1, OUTPUT);
+  pinMode(MOTOR_R_2, OUTPUT);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  myservo.attach(SERVO_PIN);
+  myservo.write(ANGLE_MIDDLE);
+  delay(500);
+  stopMotors();
+}
+
+void loop() {
+  // 거리 측정
+  int distance = getDistance();
+
+  // 디버깅 출력
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // 초음파: 앞차가 가까우면 멈춤 or 감속
+  if (distance > 0 && distance < SAFE_DISTANCE) {
+    stopMotors();
+    return; // 바로 멈춤
+  }
+
+  // --- 라인트레이싱 로직 ---
+  bool sLeft = (analogRead(LIGHT_LEFT_PIN) > THRESHOLD);
+  bool sCenter = (analogRead(LIGHT_CENTER_PIN) > THRESHOLD);
+  bool sRight = (analogRead(LIGHT_RIGHT_PIN) > THRESHOLD);
+
+  // [ 0 | 1 | 0 ] : 직진
+  if (!sLeft && sCenter && !sRight) {
+    setSteering(ANGLE_MIDDLE);
+    moveMotors(FORWARD, SPEED_FAST);
+  }
+  // [ 0 | 1 | 1 ] : 약간 우회전
+  else if (!sLeft && sCenter && sRight) {
+    setSteering(ANGLE_RIGHT_HALF);
+    moveMotors(FORWARD, SPEED_SLOW);
+  }
+  // [ 1 | 1 | 0 ] : 약간 좌회전
+  else if (sLeft && sCenter && !sRight) {
+    setSteering(ANGLE_LEFT_HALF);
+    moveMotors(FORWARD, SPEED_SLOW);
+  }
+  // [ 0 | 0 | 1 ] : 최대 우회전
+  else if (!sLeft && !sCenter && sRight) {
+    setSteering(ANGLE_RIGHT_MAX);
+    moveMotors(FORWARD, SPEED_SLOW);
+  }
+  // [ 1 | 0 | 0 ] : 최대 좌회전
+  else if (sLeft && !sCenter && !sRight) {
+    setSteering(ANGLE_LEFT_MAX);
+    moveMotors(FORWARD, SPEED_SLOW);
+  }
+  // [ 0 | 0 | 0 ] : 라인 이탈
+  else if (!sLeft && !sCenter && !sRight) {
+    stopMotors();
+  }
+  // [ 1 | 1 | 1 ] : 교차로
+  else if (sLeft && sCenter && sRight) {
+    setSteering(ANGLE_MIDDLE);
+    moveMotors(FORWARD, SPEED_SLOW);
+  }
+
+  delay(10);
+}
+
+// --- 초음파 거리 측정 함수 ---
+int getDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms 타임아웃
+  int distance = duration * 0.034 / 2; // cm 변환
+  return distance; // 너무 멀면 0 리턴
+}
+
+// --- 모터 제어 ---
+void moveMotors(int direction, int speed) {
+  if (direction == FORWARD) {
+    digitalWrite(MOTOR_L_1, HIGH);
+    digitalWrite(MOTOR_L_2, LOW);
+    digitalWrite(MOTOR_R_1, HIGH);
+    digitalWrite(MOTOR_R_2, LOW);
+  } else {
+    digitalWrite(MOTOR_L_1, LOW);
+    digitalWrite(MOTOR_L_2, HIGH);
+    digitalWrite(MOTOR_R_1, LOW);
+    digitalWrite(MOTOR_R_2, HIGH);
+  }
+  analogWrite(ENA_PIN, speed);
+  analogWrite(ENB_PIN, speed);
+}
+
+void stopMotors() {
+  digitalWrite(MOTOR_L_1, LOW);
+  digitalWrite(MOTOR_L_2, LOW);
+  digitalWrite(MOTOR_R_1, LOW);
+  digitalWrite(MOTOR_R_2, LOW);
+  analogWrite(ENA_PIN, 0);
+  analogWrite(ENB_PIN, 0);
+  myservo.write(ANGLE_MIDDLE);
+}
+
+void setSteering(int angle) {
+  myservo.write(angle);
+}
