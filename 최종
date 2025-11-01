@@ -27,10 +27,10 @@ Servo myservo;
 
 // --- 서보 각도 ---
 #define ANGLE_MIDDLE 40
-#define ANGLE_RIGHT_HALF 70
+#define ANGLE_RIGHT_HALF 60
 #define ANGLE_LEFT_HALF 20
 #define ANGLE_RIGHT_MAX 70
-#define ANGLE_LEFT_MAX 20
+#define ANGLE_LEFT_MAX 10
 
 // --- 속도 ---
 #define SPEED_FAST 140
