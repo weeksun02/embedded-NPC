@@ -18,8 +18,7 @@ Servo myservo;
 #define SERVO_PIN 2
 
 // --- 초음파 핀 ---
-#define TRIG_PIN 12
-#define ECHO_PIN 13
+#define IR_PIN 13  
 
 // --- 설정 값 ---
 #define THRESHOLD 300
@@ -28,14 +27,14 @@ Servo myservo;
 
 // --- 서보 각도 ---
 #define ANGLE_MIDDLE 40
-#define ANGLE_RIGHT_HALF 60
+#define ANGLE_RIGHT_HALF 70
 #define ANGLE_LEFT_HALF 20
 #define ANGLE_RIGHT_MAX 70
-#define ANGLE_LEFT_MAX 10
+#define ANGLE_LEFT_MAX 20
 
 // --- 속도 ---
-#define SPEED_FAST 120
-#define SPEED_SLOW 100
+#define SPEED_FAST 140
+#define SPEED_SLOW 120
 #define SPEED_STOP 0
 
 // --- 거리 기준 ---
@@ -51,8 +50,9 @@ void setup() {
   pinMode(MOTOR_R_1, OUTPUT);
   pinMode(MOTOR_R_2, OUTPUT);
 
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
+  
+    // 장애물 센서 핀 (E18-D80NK)
+  pinMode(IR_PIN, INPUT_PULLUP); // LOW = 감지
 
   myservo.attach(SERVO_PIN);
   myservo.write(ANGLE_MIDDLE);
@@ -62,17 +62,18 @@ void setup() {
 
 void loop() {
   // 거리 측정
-  int distance = getDistance();
-
-  // 디버깅 출력
-  Serial.print("Distance: ");
-  Serial.print(distance);
-  Serial.println(" cm");
-
-  // 초음파: 앞차가 가까우면 멈춤 or 감속
-  if (distance > 0 && distance < SAFE_DISTANCE) {
+  int obstacle = digitalRead(IR_PIN); // LOW = 감지
+  if (obstacle == LOW) {
     stopMotors();
-    return; // 바로 멈춤
+    Serial.println("⚠️ 장애물 감지 → 정지");
+
+    // ✅ 장애물이 사라질 때까지 대기
+    while (digitalRead(IR_PIN) == LOW) {
+      delay(50);  // 0.05초마다 다시 확인
+    }
+
+    Serial.println("✅ 장애물 사라짐 → 라인트레이싱 재개");
+    delay(300); // 살짝 기다렸다가 출발
   }
 
   // --- 라인트레이싱 로직 ---
@@ -118,18 +119,7 @@ void loop() {
   delay(10);
 }
 
-// --- 초음파 거리 측정 함수 ---
-int getDistance() {
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
 
-  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms 타임아웃
-  int distance = duration * 0.034 / 2; // cm 변환
-  return distance; // 너무 멀면 0 리턴
-}
 
 // --- 모터 제어 ---
 void moveMotors(int direction, int speed) {
