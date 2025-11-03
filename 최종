@@ -37,8 +37,6 @@ Servo myservo;
 #define SPEED_SLOW 120
 #define SPEED_STOP 0
 
-// --- 거리 기준 ---
-#define SAFE_DISTANCE 15   // cm (이 거리보다 가까우면 감속/정지)
 
 void setup() {
   Serial.begin(9600);
