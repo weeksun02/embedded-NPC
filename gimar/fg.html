@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>버스도착예정시간안내</title>
+
+<style>
+
+body {
+  background: #dcdcdc;
+  font-family: "Noto Sans KR", sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.board {
+  width: 430px;
+  background: #ffffff;
+  border: 6px solid #1e1e1e;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+/* 상단 헤더 */
+.header {
+  background: #204ecf;
+  color: white;
+  padding: 12px;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  position: relative;
+}
+
+.header .time {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+/* 테이블 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+th, td {
+  border: 1px solid #bfc8d8;
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* 테이블 헤더 */
+th {
+  background: #3c6df0;
+  color: white;
+  padding: 10px;
+}
+
+/* 예정시간 스타일 (파란 박스) */
+.time-box {
+  background: #1f4fd4;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  display: inline-block;
+  min-width: 45px;
+}
+
+/* 진입차량 “102” 박스 */
+.one-box {
+  background: #ffffff;
+  color: rgb(226, 16, 40);
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  display: inline-block;
+  min-width: 200px;
+  text-align: center;
+}
+
+/* 진입 차량 영역 */
+.section-title {
+  background: #2b5fd9;
+  color: white;
+  padding: 10px;
+  font-size: 17px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  
+  gap: 10px;
+}
+
+.section-title .temp {
+  margin-left: auto;
+  margin-right: 10px;
+  font-size: 15px;
+}
+
+/* 광고 영역 */
+.ad-area {
+  display: flex;
+  justify-content: space-around;
+  background: #191919;
+  padding: 15px 0;
+}
+
+.ad-area img {
+  width: 45%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+/* 하단 */
+.footer {
+  background: #191919;
+  color: #ff3a3a;
+  padding: 12px;
+  font-size: 22px;
+  text-align: center;
+  font-weight: bold;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="board">
+
+  <!-- 상단 -->
+  <div class="header">
+    버스도착예정시간안내
+    <div class="time">loading...</div>
+  </div>
+
+  <!-- 테이블 -->
+  <table>
+    <thead>
+      <tr>
+        <th>노선번호</th>
+        <th>종착지</th>
+        <th>예정시간</th>
+        <th>버스위치</th>
+      </tr>
+    </thead>
+
+    <tbody id="busTable"></tbody>
+  </table>
+
+  <!-- 진입 차량 -->
+  <div class="section-title">진입차량
+    <div class="one-box arrive-right">--</div>
+    <span class="temp">현재 12℃</span>
+  </div>
+
+  <!-- 광고 -->
+  <div class="ad-area">
+    <img src="https://via.placeholder.com/150x200.png?text=Ad1">
+    <img src="https://via.placeholder.com/150x200.png?text=Ad2">
+  </div>
+
+  <!-- 하단 -->
+  <div class="footer">탑승대기 --</div>
+
+</div>
+
+</body>
+
+<script>
+
+// ⭐ 실시간 시계 업데이트
+function updateClock() {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+
+  const hour = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+
+  document.querySelector(".time").textContent =
+    `${month}월 ${day}일 ${hour}:${min}`;
+}
+updateClock();
+setInterval(updateClock, 60000);
+
+
+// ⭐ 대전 버스 실시간 API 연동
+async function loadBus() {
+
+  const res = await fetch("http://localhost:3000/bus");
+  const xmlText = await res.text();
+
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(xmlText, "text/xml");
+
+  const items = xml.getElementsByTagName("itemList");
+
+  const tableBody = document.getElementById("busTable");
+  tableBody.innerHTML = "";
+
+  let soonBus = null;
+  let soonTime = 9999;
+
+  for (let i = 0; i < items.length; i++) {
+    const node = items[i];
+
+    const route = node.getElementsByTagName("ROUTE_NO")[0]?.textContent ?? "";
+const dest  = node.getElementsByTagName("DESTINATION")[0]?.textContent ?? "";
+const time  = node.getElementsByTagName("EXTIME_MIN")[0]?.textContent ?? "";
+
+// STATUS_POS = 남은 정류장 수 (도착정보 API의 유일한 “위치” 정보)
+const stopCount = node.getElementsByTagName("STATUS_POS")[0]?.textContent ?? "";
+const stop = stopCount !== "" ? `${stopCount} 번째 전` : "-";
+
+tableBody.innerHTML += `
+  <tr>
+    <td>${route}</td>
+    <td>${dest}</td>
+    <td><span class="time-box">${time}분</span></td>
+    <td>${stop}</td>
+  </tr>
+`;
+
+
+    // 가장 빨리 오는 버스 찾기
+    const t = parseInt(time);
+    if (t < soonTime) {
+      soonTime = t;
+      soonBus = route;
+    }
+  }
+
+  // 진입차량(가장 빨리 오는 버스 번호) 표시
+  if (soonBus) {
+    document.querySelector(".arrive-right").textContent = soonBus;
+    document.querySelector(".footer").textContent = "탑승대기 " + soonBus;
+  }
+}
+
+// 최초 실행
+loadBus();
+
+// 30초마다 갱신
+setInterval(loadBus, 30000);
+
+</script>
+
+</html>
