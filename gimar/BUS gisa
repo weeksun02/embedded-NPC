@@ -1,0 +1,71 @@
+#include <SPI.h>
+#include <LoRa.h>
+#include <Wire.h>                     // 🔴 추가
+#include <LiquidCrystal_I2C.h>   
+
+// ================= LED 핀 =================
+// (정류장과 동일하게 D핀 사용 권장)
+#define RIDE_LED A0   // 승차 LED
+#define HELP_LED A3   // 도움 LED
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(RIDE_LED, OUTPUT);
+  pinMode(HELP_LED, OUTPUT);
+
+  digitalWrite(RIDE_LED, LOW);
+  digitalWrite(HELP_LED, LOW);
+
+  Serial.println("Bus Receiver Start");
+
+  // 송신기와 반드시 동일한 주파수
+  if (!LoRa.begin(923E6)) {
+    Serial.println("LoRa init failed!");
+    while (1);
+  }
+
+  Serial.println("LoRa init OK");
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("    314 BUS");
+
+}
+
+void loop() {
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+
+    String msg = "";
+    while (LoRa.available()) {
+      msg += (char)LoRa.read();
+    }
+
+    Serial.print("Received: ");
+    Serial.println(msg);
+
+    // ================= 승차 =================
+    if (msg.indexOf("314:RIDE_ON") >= 0) {
+      digitalWrite(RIDE_LED, HIGH);
+      Serial.println("RIDE LED ON");
+    }
+
+    if (msg.indexOf("314:RIDE_OFF") >= 0) {
+      digitalWrite(RIDE_LED, LOW);
+      Serial.println("RIDE LED OFF");
+    }
+
+    // ================= 도움 =================
+    if (msg.indexOf("314:HELP_ON") >= 0) {
+      digitalWrite(HELP_LED, HIGH);
+      Serial.println("HELP LED ON");
+    }
+
+    if (msg.indexOf("314:HELP_OFF") >= 0) {
+      digitalWrite(HELP_LED, LOW);
+      Serial.println("HELP LED OFF");
+    }
+  }
+}  
