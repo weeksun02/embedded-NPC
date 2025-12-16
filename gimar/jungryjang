@@ -1,0 +1,85 @@
+#include <SPI.h>
+#include <LoRa.h>
+
+// 스위치: A0 ~ A5
+const int swPins[6] = {A0, A1, A2, A3, A4, A5};
+// LED: 3 ~ 8
+const int ledPins[6] = {3, 4, 5, 6, 7, 8};
+
+// 상태 변수
+bool ledState[6] = {false, false, false, false, false, false};
+bool lastSwState[6] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
+unsigned long lastDebounceTime[6] = {0, 0, 0, 0, 0, 0};
+const unsigned long debounceDelay = 50;
+
+// LoRa 초기화 성공 여부
+bool loraOK = false;
+
+void setup() {
+  Serial.begin(9600);
+
+  for (int i = 0; i < 6; i++) {
+    pinMode(ledPins[i], OUTPUT);
+    pinMode(swPins[i], INPUT_PULLUP);
+    digitalWrite(ledPins[i], LOW);
+  }
+
+  Serial.println("Station(Sender) Start");
+
+  // ✅ LoRa 초기화 (실패해도 멈추지 않게!)
+  if (LoRa.begin(923E6)) {
+    loraOK = true;
+    Serial.println("LoRa init OK");
+  } else {
+    loraOK = false;
+    Serial.println("LoRa init FAILED (but LEDs will still work)");
+  }
+}
+
+void loop() {
+  for (int i = 0; i < 6; i++) {
+    checkButton(i);
+  }
+}
+
+// 버튼 체크 및 토글 함수
+void checkButton(int i) {
+  int reading = digitalRead(swPins[i]);
+  static int stableState[6] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
+
+  if (reading != lastSwState[i]) {
+    lastDebounceTime[i] = millis();
+  }
+
+  if ((millis() - lastDebounceTime[i]) > debounceDelay) {
+    if (reading != stableState[i]) {
+      stableState[i] = reading;
+
+      // "눌렸을 때(LOW)"만 토글
+      if (stableState[i] == LOW) {
+        ledState[i] = !ledState[i];
+        digitalWrite(ledPins[i], ledState[i] ? HIGH : LOW);
+
+        // ✅ 여기서부터가 LoRa 추가 부분 (토글 순간에만 전송)
+        if (loraOK) {
+          // 예: A2(index2)=314 승차, A4(index4)=314 도움
+          if (i == 0) sendState("314:RIDE", ledState[i]);
+          if (i == 4) sendState("314:HELP", ledState[i]);
+        }
+      }
+    }
+  }
+  lastSwState[i] = reading;
+}
+
+// ledState가 true면 _ON, false면 _OFF 붙여서 전송
+void sendState(const char* base, bool on) {
+  LoRa.beginPacket();
+  LoRa.print(base);
+  LoRa.print(on ? "_ON" : "_OFF");
+  LoRa.endPacket();
+
+  Serial.print("Sent: ");
+  Serial.print(base);
+  Serial.println(on ? "_ON" : "_OFF");
+}
