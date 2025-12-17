@@ -27,10 +27,10 @@ void setup() {
   }
 
   Serial.println("LoRa init OK");
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("    314 BUS");
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    ");
 
 }
 
@@ -45,25 +45,109 @@ void loop() {
 
     Serial.print("Received: ");
     Serial.println(msg);
+    // ================= 711승차 =================
+    
+    if (msg.indexOf("711:RIDE_ON") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    711 BUS");
+      digitalWrite(RIDE_LED, HIGH);
+      Serial.println("RIDE LED ON");
+    }
 
-    // ================= 승차 =================
+    if (msg.indexOf("711:RIDE_OFF") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    711 BUS");
+      digitalWrite(RIDE_LED, LOW);
+      Serial.println("RIDE LED OFF");
+    }
+    // ================= 314도움 =================
+    if (msg.indexOf("711:HELP_ON") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    711 BUS");
+      digitalWrite(HELP_LED, HIGH);
+      Serial.println("HELP LED ON");
+    }
+
+    if (msg.indexOf("711:HELP_OFF") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    711 BUS");
+      digitalWrite(HELP_LED, LOW);
+      Serial.println("HELP LED OFF");
+    }
+    // ================= 105승차 =================
+    if (msg.indexOf("105:RIDE_ON") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    105 BUS");
+      digitalWrite(RIDE_LED, HIGH);
+      Serial.println("RIDE LED ON");
+    }
+
+    if (msg.indexOf("105:RIDE_OFF") >= 0) {
+      digitalWrite(RIDE_LED, LOW);
+      Serial.println("RIDE LED OFF");
+    }
+    // ================= 105도움 =================
+    if (msg.indexOf("105:HELP_ON") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    105 BUS");
+      digitalWrite(HELP_LED, HIGH);
+      Serial.println("HELP LED ON");
+    }
+
+    if (msg.indexOf("105:HELP_OFF") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    105 BUS");
+      digitalWrite(HELP_LED, LOW);
+      Serial.println("HELP LED OFF");
+    }
+    // ================= 314승차 =================
     if (msg.indexOf("314:RIDE_ON") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    314 BUS");
       digitalWrite(RIDE_LED, HIGH);
       Serial.println("RIDE LED ON");
     }
 
     if (msg.indexOf("314:RIDE_OFF") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    314 BUS");
       digitalWrite(RIDE_LED, LOW);
       Serial.println("RIDE LED OFF");
     }
 
-    // ================= 도움 =================
+    // ================= 314도움 =================
     if (msg.indexOf("314:HELP_ON") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    314 BUS");
       digitalWrite(HELP_LED, HIGH);
       Serial.println("HELP LED ON");
     }
 
     if (msg.indexOf("314:HELP_OFF") >= 0) {
+      lcd.init();
+      lcd.backlight();
+      lcd.setCursor(0, 0);
+      lcd.print("    314 BUS");
       digitalWrite(HELP_LED, LOW);
       Serial.println("HELP LED OFF");
     }
