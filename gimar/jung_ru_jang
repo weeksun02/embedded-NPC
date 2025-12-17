@@ -65,6 +65,11 @@ void checkButton(int i) {
           // 예: A2(index2)=314 승차, A4(index4)=314 도움
           if (i == 0) sendState("314:RIDE", ledState[i]);
           if (i == 4) sendState("314:HELP", ledState[i]);
+          if (i == 2) sendState("105:RIDE", ledState[i]);
+          if (i == 5) sendState("105:HELP", ledState[i]);
+          if (i == 1) sendState("711:RIDE", ledState[i]);
+          if (i == 3) sendState("711:HELP", ledState[i]);
+
         }
       }
     }
